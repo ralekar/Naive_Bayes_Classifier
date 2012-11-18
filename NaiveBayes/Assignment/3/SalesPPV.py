@@ -1,4 +1,11 @@
 '''
+Created on Nov 15, 2012
+
+@author: ralekar
+'''
+from numpy.lib.function_base import blackman
+
+'''
 Created on Nov 14, 2012
 
 @author: ralekar
@@ -14,50 +21,33 @@ class Ddict(dict):
             self[key] = self.default()
         return dict.__getitem__(self, key)
 
-def dataCleaning():
+def createBlocks():
+
+    ftrain=open("D:/Dropbox/DataMining/Assignment3/sales_train.csv","r").readlines()
+    flabel=open("D:/Dropbox/DataMining/Assignment3/sales_labels.txt","r").readlines()
+    step=len(ftrain)/10
+    if len(ftrain)%10!=0:
+        remainder=len(ftrain)%10
     
-    fread=open("D:/Dropbox/DataMining/Assignment3/salestable.csv","r").readlines()
-    fclean=open("D:/Dropbox/DataMining/Assignment3/sales_clean.csv","w")
+    dictLabel={}
+    for label in flabel:
+        label=re.split(",",str(label.strip()))
+        for lbl in label:
+            dictLabel[lbl]=0
+   
     
-    for line in fread:
-        line=re.split(",",line)
-        writer=""
-        flag=False
-        index=0
-        for token in line:
-            token=re.sub(r'\"',"",token)
-            line[index]=token
-            index+=1
-        
-        for token in line:
-            token=token.strip()
-            if token=="NA":
-                flag=True
-            if token!=line[-1].strip():        
-                writer+=token+","
-            else:
-                writer+=token+"\n"
-        if flag==False:
-            fclean.write(writer) 
-    fclean.close()
-    fclean=open("D:/Dropbox/DataMining/Assignment3/sales_clean.csv","r").readlines()
-    dataPartition(fclean)
+    blockPart=[]     
+    for testBlock in range(0,len(ftrain),step):
+        if testBlock+step+remainder<=len(ftrain):
+            blockPart.append(testBlock)
+            blockPart.append(testBlock+step)
+    blockPart[-1]+=remainder
+            
+    for i in range(2,len(blockPart),2):
+        blockPart[i]+=1            
     
-    
-def dataPartition(fread):
-    
-    ftrain=open("D:/Dropbox/DataMining/Assignment3/sales_train.csv","w")
-    ftest=open("D:/Dropbox/DataMining/Assignment3/sales_test.csv","w")
-    for line in fread:
-        line=re.split(",",str(line.strip()))
-        string=",".join(line)
-        if line[-1].strip()=='fraud' or line[-1].strip()=='ok':
-            ftrain.write(string+"\n")    
-        if line[-1].strip()=='unkn':
-            ftest.write(string+"\n")    
-                 
-    ftest.close()
-    ftrain.close()
+    return ftrain,blockPart,dictLabel
+
 
 def generate2DimHashMap():
     return Ddict(dict)
@@ -70,46 +60,56 @@ def generateFeatureDataStructure():
         feature=generate2DimHashMap()
         featureDictionary.append(feature)
     
+def calculateTrainLabels(label,trainLabel):
+    if label in trainLabel:
+        temp=trainLabel[label]
+        temp+=1
+        trainLabel[label]=temp
+    if label not in trainLabel:
+        trainLabel[label]=1    
+    return trainLabel    
     
 def featureProbablity():
     global featureDictionary
     
-    ftrain=open("D:/Dropbox/DataMining/Assignment3/sales_train.csv","r").readlines()
-    flabel=open("D:/Dropbox/DataMining/Assignment3/sales_labels.txt","r").readlines()
-    
-    dictLabel={}
-    for label in flabel:
-        label=re.split(",",str(label.strip()))
-        for lbl in label:
-            dictLabel[lbl]=0
-    
-                            
-    for line in ftrain:
-        index=0
-        line=re.split(",",str(line.strip()))
-        
-        for feature in featureDictionary:
-            if line[index] in feature:
-                if line[-1] in feature[line[index]]:  
-                    count=int(feature[line[index]][line[-1]])
-                    count+=1
-                    feature[line[index]][line[-1]]=count
-                    featureDictionary[index]=feature
+    ftrain,blockPart,dictLabel=createBlocks()
+    trainBlock=[]
+    testBlock=[]
+       
+    for t in range(0,len(blockPart),2):
+        trainLabels={}
+        testLabels={}
+        generateFeatureDataStructure()
+        testBlock=ftrain[blockPart[t]:blockPart[t+1]]
+        for ind in range(0,len(blockPart),2):
+            if blockPart[ind] != blockPart[t] and blockPart[t+1]!=blockPart[ind+1]:
+                trainBlock=ftrain[blockPart[ind]:blockPart[ind+1]]
+                for line in trainBlock:
+                    index=0
+                    line=re.split(",",str(line.strip()))
+                    for feature in featureDictionary:
+                         if line[index] in feature:
+                                if line[-1] in feature[line[index]]:  
+                                    count=int(feature[line[index]][line[-1]])
+                                    count+=1
+                                    feature[line[index]][line[-1]]=count
+                                    featureDictionary[index]=feature
                     
                 
-            if line[index] not in feature:
-                for label in dictLabel:
-                    feature[line[index]][label]=0
-                    feature[line[index]]["probability_"+label]=0
-                
-                feature[line[index]][line[-1]]=1
-                featureDictionary[index]=feature
-                           
-            index+=1 
-    mean,meanSquare,standardDeviation,dictLabel=calculateNormal(dictLabel)      
-    calculateDiscreteAttributes(dictLabel)
-    labelTestSet(mean,meanSquare,standardDeviation,dictLabel)
-    
+                         if line[index] not in feature:
+                                for label in dictLabel:
+                                    feature[line[index]][label]=0
+                                    feature[line[index]]["probability_"+label]=0
+                                feature[line[index]][line[-1]]=1
+                                featureDictionary[index]=feature
+                        
+                            
+                         index+=1 
+        mean,meanSquare,standardDeviation,dictLabel=calculateNormal(dictLabel)      
+        calculateDiscreteAttributes(dictLabel)
+        labelTestSet(testBlock,mean,meanSquare,standardDeviation,dictLabel)
+        
+
 def calculateNormal(dictLabel):
     
     global featureDictionary
@@ -245,7 +245,7 @@ def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,
     
            
 
-def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
+def labelTestSet(testBlock,mean,meanSquare,standardDeviation,dictLabel):
     
     global featureDictionary
     global SAMPLE_SIZE
@@ -253,19 +253,20 @@ def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
     dicts={}
     dicts["ok"]=0
     dicts["fraud"]=0
+    testLabels=[]
+    trainLabels=[]
     
-    ftest=open("D:/Dropbox/DataMining/Assignment3/sales_test.csv","r").readlines()
     continous_attributes={}
     for t in range(2,len(sys.argv)):
         continous_attributes[int(sys.argv[t])]=0
     probabilityDict={}
-    for line in ftest:
+    for line in testBlock:
         tokens=re.split(",",str(line))
+        trainLabels.append(tokens[-1])
         tokens=tokens[:-1]
+        
         probabilityDict=initProbabilityDict(probabilityDict,dictLabel)
         index=0
-       
-        
         for label in dictLabel:
             for feature in featureDictionary:
                if index not in continous_attributes: 
@@ -285,11 +286,27 @@ def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
                    
         label=maxLabel(probabilityDict)
         index+=1
-        temp=dicts[label]
-        temp+=1
-        dicts[label]=temp
-    print dicts
-    
+        testLabels.append(label) 
+    generatePPV(trainLabels,testLabels)   
+def generatePPV(trainLabels,testLabels):
+   index=0
+   truePositives=0.0
+   falsePositives=0.0
+   trueNegatives=0.0
+   falseNegatives=0.0
+   
+   for train in trainLabels:
+       if train.strip()=="ok" and testLabels[index].strip()=="ok":
+                    truePositives+=1.0
+       if train.strip()=="ok" and testLabels[index].strip()=="fraud":
+                    falseNegatives+=1.0
+       if train.strip()=="fraud" and testLabels[index].strip()=="fraud":
+                    trueNegatives+=1.0
+       if train.strip()=="fraud" and testLabels[index].strip()=="ok":
+                    falsePositives+=1.0                
+       index+=1
+   print  "truePositives: ",truePositives,"falseNegatives: ",falseNegatives,"trueNegatives: ",trueNegatives,"falsePositives: ",falsePositives
+   
 def initProbabilityDict(dicts,labels):
     
     for label in labels:
@@ -311,11 +328,9 @@ def main():
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
-    #dataCleaning()
+   
     generateFeatureDataStructure()
     featureProbablity()
-    #files=open("D:/JavaDesignPatterns/Java/NaiveBayes/Data.Mining/TestTrain.txt","w")
-    #files.write(str(featureDictionary))
     
     
 if __name__=="__main__":
