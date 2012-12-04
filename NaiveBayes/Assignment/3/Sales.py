@@ -4,8 +4,9 @@ Created on Nov 14, 2012
 @author: ralekar
 '''
 import re,sys,math,operator
+from checkbox.user_interface import PREV
 class Ddict(dict):
-    
+    '''Create a 2d Hash Map'''
     def __init__(self, default=None):
         self.default = default
 
@@ -15,12 +16,13 @@ class Ddict(dict):
         return dict.__getitem__(self, key)
 
 def dataCleaning():
-    
-    fread=open("D:/Dropbox/DataMining/Assignment3/salestable.csv","r").readlines()
-    fclean=open("D:/Dropbox/DataMining/Assignment3/sales_clean.csv","w")
+    '''Clean and Divide the Data in Train and Test Set'''
+    fread=open("Sales/salestable.csv","r").readlines()                                                                                                                                                                                                                                                                                                                               
+    fclean=open("Sales/sales_clean.csv","w")
     
     for line in fread:
         line=re.split(",",line)
+        line=line[1:]
         writer=""
         flag=False
         index=0
@@ -40,16 +42,17 @@ def dataCleaning():
         if flag==False:
             fclean.write(writer) 
     fclean.close()
-    fclean=open("D:/Dropbox/DataMining/Assignment3/sales_clean.csv","r").readlines()
+    fclean=open("Sales/sales_clean.csv","r").readlines()
     dataPartition(fclean)
     
     
 def dataPartition(fread):
-    
-    ftrain=open("D:/Dropbox/DataMining/Assignment3/sales_train.csv","w")
-    ftest=open("D:/Dropbox/DataMining/Assignment3/sales_test.csv","w")
+    '''Partition the Data into Training and Test Set'''
+    ftrain=open("Sales/sales_train.csv","w")
+    ftest=open("Sales/sales_test.csv","w")
     for line in fread:
         line=re.split(",",str(line.strip()))
+        
         string=",".join(line)
         if line[-1].strip()=='fraud' or line[-1].strip()=='ok':
             ftrain.write(string+"\n")    
@@ -63,6 +66,7 @@ def generate2DimHashMap():
     return Ddict(dict)
             
 def generateFeatureDataStructure():
+    '''Initialise the Feature Data Structure'''
     global featureDictionary
     featureDictionary=[]
     
@@ -72,14 +76,16 @@ def generateFeatureDataStructure():
     
     
 def featureProbablity():
+    '''Calculate the Feature Probability'''
     global featureDictionary
     
-    ftrain=open("D:/Dropbox/DataMining/Assignment3/sales_train.csv","r").readlines()
-    flabel=open("D:/Dropbox/DataMining/Assignment3/sales_labels.txt","r").readlines()
+    ftrain=open("Sales/sales_train.csv","r").readlines()
+    flabel=open("Sales/sales_labels.txt","r").readlines()
     
     dictLabel={}
     for label in flabel:
         label=re.split(",",str(label.strip()))
+        
         for lbl in label:
             dictLabel[lbl]=0
     
@@ -111,7 +117,7 @@ def featureProbablity():
     labelTestSet(mean,meanSquare,standardDeviation,dictLabel)
     
 def calculateNormal(dictLabel):
-    
+    '''calculate the Normal'''
     global featureDictionary
     labelCount={}
     mean={}
@@ -136,6 +142,7 @@ def calculateNormal(dictLabel):
     return mean,meanSquare,standardDeviation,labelCount 
 
 def calculateDiscreteAttributes(dictLabel):
+    '''Calculate the Probability of the Discrete Attributes'''
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
@@ -161,7 +168,7 @@ def calculateDiscreteAttributes(dictLabel):
 
     
 def calculateMean(feature,dictLabel):
-    
+    '''Calculate the Mean'''
     
     labelCount={}
     mean={}
@@ -187,7 +194,7 @@ def calculateMean(feature,dictLabel):
     return labelCount,mean          
 
 def calculateMeanSquare(feature,mean,dictLabel):
-    
+    '''Calculate the Mean Square'''
     meanSquare={}
     for label in dictLabel:
         meanSquare[label]=0.0
@@ -207,7 +214,7 @@ def calculateMeanSquare(feature,mean,dictLabel):
     return meanSquare            
                       
 def calculateStandardDeviation(meanSquare):
-    
+    '''Calculate Standard Deviation'''
     standardDeviation={}    
     for label in meanSquare:
         standardDeviation[label]=math.sqrt(float(meanSquare[label]))
@@ -223,7 +230,7 @@ def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,
                           means=float(mean[label])
                           deviation=float(standardDeviation[label])
                           key=float(feat)*float(feature[feat][label])
-                          pie=(float(1/(math.sqrt(2)*math.pi)))*(1/deviation)
+                          pie=(float(1/(math.sqrt(2)*math.sqrt(math.pi))))*(1/deviation)
                           exponent=(-0.5)*((key-means)*(key-means))/(deviation*deviation)
                           feature[feat]["probability_"+label]=float(pie*math.exp(exponent))
                   
@@ -233,7 +240,7 @@ def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,
                    means=float(mean[testLabel])
                    deviation=float(standardDeviation[testLabel])
                    key=float(testValue)
-                   pie=(float(1/(math.sqrt(2)*math.pi)))*(1/deviation)
+                   pie=(float(1/(math.sqrt(2)*math.sqrt(math.pi))))*(1/deviation)
                    exponent=(-0.5)*((key-means)*(key-means))/(deviation*deviation)
                    probability[label]=float(pie*math.exp(exponent))
                    return probability
@@ -246,7 +253,7 @@ def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,
            
 
 def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
-    
+    '''Predict the Label of the Test Set'''
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
@@ -254,7 +261,7 @@ def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
     dicts["ok"]=0
     dicts["fraud"]=0
     
-    ftest=open("D:/Dropbox/DataMining/Assignment3/sales_test.csv","r").readlines()
+    ftest=open("Sales/sales_test.csv","r").readlines()
     continous_attributes={}
     for t in range(2,len(sys.argv)):
         continous_attributes[int(sys.argv[t])]=0
@@ -272,9 +279,9 @@ def labelTestSet(mean,meanSquare,standardDeviation,dictLabel):
                    attributes=str(tokens[index].strip())
                    if attributes in feature:
                        value=float(probabilityDict[label])
-                       probabilityDict[label]=value*float(feature[attributes]["probability_"+label]) 
+                       probabilityDict[label]=((value*float(feature[attributes]["probability_"+label]))+(SAMPLE_SIZE*PARAMETER))/(float(dictLabel[label])+SAMPLE_SIZE)
                        if attributes not in feature:
-                           denominator=float(dictLabel[label])+PARAMETER
+                           denominator=float(dictLabel[label])+SAMPLE_SIZE
                            value=SAMPLE_SIZE*PARAMETER
                            probabilityDict[label]*=float(value/denominator)    
                if index in continous_attributes:
@@ -298,11 +305,18 @@ def initProbabilityDict(dicts,labels):
 
 
 def maxLabel(probability):
-                   
+                   '''Check the Probability of the Labels'''
+                   global prevLabel         
                    sorted_probability = sorted(probability.iteritems(), key=operator.itemgetter(1))
                    label=sorted_probability[0][0]
                    if sorted_probability[0][1]==sorted_probability[1][1]:
-                         label="ok"
+                       if label=="ok":
+                             if prevLabel=="ok":
+                                 label="fraud"
+                       if label=="fraud":
+                                 if prevLabel=="fraud":
+                                     label="ok"
+                       prevLabel=label                          
                    return label
                
                
@@ -311,7 +325,9 @@ def main():
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
-    #dataCleaning()
+    global prevLabel
+    prevLabel="fraud"
+    dataCleaning()
     generateFeatureDataStructure()
     featureProbablity()
     #files=open("D:/JavaDesignPatterns/Java/NaiveBayes/Data.Mining/TestTrain.txt","w")
