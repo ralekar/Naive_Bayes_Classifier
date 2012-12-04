@@ -12,7 +12,7 @@ Created on Nov 14, 2012
 '''
 import re,sys,math,operator
 class Ddict(dict):
-    '''creating a 2d Hash Map'''
+    
     def __init__(self, default=None):
         self.default = default
 
@@ -22,9 +22,9 @@ class Ddict(dict):
         return dict.__getitem__(self, key)
 
 def createBlocks():
-    '''Creating Train and Test Set'''
-    ftrain=open("Sales/sales_train.csv","r").readlines()
-    flabel=open("Sales/sales_labels.txt","r").readlines()
+
+    ftrain=open("/media/Data/Dropbox/DataMining/Assignment3/Regression/sales_train.csv","r").readlines()
+    flabel=open("/media/Data/Dropbox/DataMining/Assignment3/Regression/sales_labels.txt","r").readlines()
     step=len(ftrain)/10
     if len(ftrain)%10!=0:
         remainder=len(ftrain)%10
@@ -53,7 +53,6 @@ def generate2DimHashMap():
     return Ddict(dict)
             
 def generateFeatureDataStructure():
-    '''initialising the Data Structure'''
     global featureDictionary
     featureDictionary=[]
     
@@ -62,7 +61,6 @@ def generateFeatureDataStructure():
         featureDictionary.append(feature)
     
 def calculateTrainLabels(label,trainLabel):
-    '''Compute the Labels'''
     if label in trainLabel:
         temp=trainLabel[label]
         temp+=1
@@ -72,7 +70,6 @@ def calculateTrainLabels(label,trainLabel):
     return trainLabel    
     
 def featureProbablity():
-    '''Calculate the Probability of the Features'''
     global featureDictionary
     
     ftrain,blockPart,dictLabel=createBlocks()
@@ -114,7 +111,7 @@ def featureProbablity():
         
 
 def calculateNormal(dictLabel):
-    '''Calculate Normal For all the Continous Attributes'''
+    
     global featureDictionary
     labelCount={}
     mean={}
@@ -139,7 +136,6 @@ def calculateNormal(dictLabel):
     return mean,meanSquare,standardDeviation,labelCount 
 
 def calculateDiscreteAttributes(dictLabel):
-    '''Calculate the Probability of the Discrete Attributes'''
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
@@ -166,7 +162,7 @@ def calculateDiscreteAttributes(dictLabel):
     
 def calculateMean(feature,dictLabel):
     
-    '''Calculate the Mean'''
+    
     labelCount={}
     mean={}
     for label in dictLabel:
@@ -211,7 +207,7 @@ def calculateMeanSquare(feature,mean,dictLabel):
     return meanSquare            
                       
 def calculateStandardDeviation(meanSquare):
-    '''Calculate the Standard Deviation'''
+    
     standardDeviation={}    
     for label in meanSquare:
         standardDeviation[label]=math.sqrt(float(meanSquare[label]))
@@ -220,7 +216,7 @@ def calculateStandardDeviation(meanSquare):
     return standardDeviation
 
 def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,testValue,testLabel):
-               '''Calculate the Normal Distribution'''       
+          
                if flag==True:
                   for feat in feature:
                       for label in dictLabel:
@@ -250,7 +246,7 @@ def normalDistribution(feature,mean,meanSquare,standardDeviation,dictLabel,flag,
            
 
 def labelTestSet(testBlock,mean,meanSquare,standardDeviation,dictLabel):
-    '''Predict the Labels'''
+    
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
@@ -294,7 +290,6 @@ def labelTestSet(testBlock,mean,meanSquare,standardDeviation,dictLabel):
         testLabels.append(label) 
     generatePPV(trainLabels,testLabels)   
 def generatePPV(trainLabels,testLabels):
-   '''Generate the PPV values''' 
    global PPV
    index=0
    truePositives=0.0
@@ -324,7 +319,6 @@ def initProbabilityDict(dicts,labels):
 
 
 def maxLabel(probability):
-                   '''Find the Max Label'''
                    global prevLabel
                    sorted_probability = sorted(probability.iteritems(), key=operator.itemgetter(1))
                    label=sorted_probability[0][0]
@@ -341,7 +335,7 @@ def maxLabel(probability):
                
                
 def main():
-    '''Start of the Main Program'''
+    
     global featureDictionary
     global SAMPLE_SIZE
     global PARAMETER
